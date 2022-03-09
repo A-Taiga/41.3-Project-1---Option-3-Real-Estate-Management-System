@@ -1,0 +1,47 @@
+Address: Argus Street 12311
+January: 161.80
+D * * * * * * 
+* * * * * * * 
+* * * * * * * 
+* * * * * * * 
+* * *
+
+December: 80.90
+* * * * * * * 
+* * * * * * * 
+* * * * * * * 
+* * * * * * * 
+* * B
+
+Total: $242.00
+
+Address: Valentine Lane 21422
+February: 2656.72
+* B B B B B * 
+* B B B B B * 
+* B B B B B * 
+* B B B B B * 
+* B B
+
+Total: $2656.00
+
+Address: Agnus Dr. 12311
+March: 399.96
+* * * * * * * 
+* * * * * * D 
+* * * * * * D 
+* * * * * * * 
+* * *
+
+April: 199.98
+D * * * * * * 
+* * * * * * * 
+* * * * * * * 
+* * * * * * * 
+* * *
+
+Total: $599.00
+
+Address: Cullen Rd 6790
+Total: $0.00
+
