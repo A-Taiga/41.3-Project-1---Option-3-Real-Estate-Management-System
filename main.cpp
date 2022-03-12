@@ -1,340 +1,286 @@
-
-//TODO
-// clean up functions
-
-
 #include <iostream>
 #include <fstream>
-#include <vector>
 #include <sstream>
+#include <vector>
 #include <iomanip>
-
 using namespace std;
 
 struct Property {
     string address;
     double price;
     int numTenants;
-    int bookingDays[31][4];
-	bool year[373];
-	double monthlyTotals[13];
+    vector<vector<int> > dates;
+    char year[372];
+	double monthlyTotals[12];
+	double total;
 };
 
-Property setYear(Property property);
-void printCalendar(Property property, int month);
-Property addBookings (Property Property, string start, string end);
-double getYearlyTotal(Property& Property); // fix this
-void printCalendarForFile(Property property, double total);
-
+void setYear(Property &property);
+void printMonth(Property property,int month);
+void addDate(Property &Property, string startDate, string endDate);
+void getTotals(vector<Property> &properties);
+void printToFile(vector<Property> properties);
 
 int main() {
 
     vector<Property> properties;
     ifstream file("properties.txt");
+
     if(!file.is_open()) {
-        cout << "ERROR FILE properties.txt COULD NOT OPEN" << endl;
+        cout << "ERROR: FILE DID NOT OPEN" << endl;
         exit(-1);
     }
-    Property temp;
-    istringstream ss;
-    string date;
-    while(getline(file,temp.address)) {
-        file >> temp.price;
-        file >> temp.numTenants;
-        file.ignore();
-        file.ignore(256,'\n');
-        for(int i = 0; i < temp.numTenants; i++) {
-            getline(file,date);
-            ss.str(date);
-            for(int j = 0; j < 4; j++) {
-                ss >> temp.bookingDays[i][j];
-            }
-        }
-        file.ignore();
-        file.ignore();
-		temp = setYear(temp);
+    
+    Property* temp;
+	temp = new Property;
+	
+	string line;
 
+	while(getline(file,temp->address)) {
+		file >> temp->price;
+		file >> temp->numTenants;
+		file.ignore(); 
+		file.ignore(256,'\n');
+		for(int i = 0; i < temp->numTenants; i++) {
+			vector<int> tempVect;
+			int tempInt;
+			getline(file,line);
+			istringstream ss(line);
+			ss >> tempInt;
+			tempVect.push_back(tempInt);
+			ss >> tempInt;
+			tempVect.push_back(tempInt);
+			ss >> tempInt;
+			tempVect.push_back(tempInt);
+			ss >> tempInt;
+			tempVect.push_back(tempInt);
+			temp->dates.push_back(tempVect);
+			tempVect.clear();
+		}
+		for(int i = 0; i < 372; i++) {
+			temp->year[i] = '*';
+		}
+		properties.push_back(*temp);
+		file.ignore();
+		file.ignore();
+		delete temp;
+		temp = new Property;
+	}
+	delete temp;
 
-        properties.push_back(temp);
-    }
+	for(size_t i = 0; i < properties.size(); i++) {
+		setYear(properties.at(i));
+	}
+	string addressEntered;
+	char option;
+	Property* selectedProperty;
+	bool pass = true;
 
-
-    string addressEntered;
-	string optionEntered;
-	int selectionIndex;
-	Property selectedProperty;
-
-	bool propertyCheck = true;
 	cout << "Enter the address of the property you want to book or exit to exit:" << endl;
-		getline(cin,addressEntered);
+	getline(cin,addressEntered);
 
 	while(addressEntered != "exit") {
-
-
 		for(size_t i = 0; i < properties.size(); i++) {
 			if(properties.at(i).address.find(addressEntered) != string::npos) {
-				selectionIndex = i;
-				selectedProperty = properties.at(i);
-				propertyCheck = true;
+				selectedProperty = &properties.at(i);
+				pass = true;
 				break;
 			} else {
-				propertyCheck = false;
+				pass = false;
 			}
 		}
-		if(!propertyCheck) {
+		if(!pass) {
 			cout << "Address not found" << endl;
 			cout << "Enter the address of the property you want to book or exit to exit:" << endl;
 			getline(cin,addressEntered);
+			pass = true;
 		} else {
-	
 
 			cout << "Enter an option:" << endl;
 			cout << "1. Show the calendar of the property on a given month" << endl;
 			cout << "2. Book a period of time for a given property" << endl;        
 			cout << "q. Quit" << endl;
-				cin >> optionEntered;
-				cin.ignore();
-
-		if(optionEntered == "1") { // show selected month
-			int month;
-			cout << "Enter the month number:" << endl;
-			cin >> month;
+			cin >> option;
 			cin.ignore();
-			printCalendar(properties.at(selectionIndex),month);
 
-		} else if (optionEntered == "2") { // book date
+			if(option == '1') {
+				int month;
+				cout << "Enter the month number:" << endl;
+				cin >> month;
+				cin.ignore();
+				if( 0 < month && month <= 12) {
+					printMonth(*selectedProperty,month);
+				} else {
+					cout << "Invalid month number" << endl;
+				}
 
-			string start;
-			string end;
-			cout << "Enter the start month and day:" << endl;
-				getline(cin,start);
-			cout << "Enter the end month and day:" << endl;
-				getline(cin,end);
-			properties.at(selectionIndex) = addBookings(properties.at(selectionIndex),start,end);
-			
-	
-		} else if (optionEntered == "q") { // quit
-			cout << "Enter the address of the property you want to book or exit to exit:" << endl;
+			} else if(option == '2') {
+				string startDate;
+				string endDate;
+				cout << "Enter the start month and day:" << endl;
+				getline(cin,startDate);
+				cout << "Enter the end month and day:" << endl;
+				getline(cin,endDate);
+				addDate(*selectedProperty, startDate, endDate);	
+
+			} else if(option == 'q') {
+				cout << "Enter the address of the property you want to book or exit to exit:" << endl;
 				getline(cin,addressEntered);
+			
+			} else {
+				cout << "Invalid option" << endl;
 
-		} else { // invalid option entered
-			cout << "Invalid option" << endl;
-
+				}
 			}
 		}
-	}
+		getTotals(properties);
+		printToFile(properties);
 
-	ofstream fileOut("yearly.txt");
-	fileOut.clear();
+
 	
-	for(size_t i = 0; i < properties.size(); i++) {
-		getYearlyTotal(properties.at(i));
-		
-		printCalendarForFile(properties.at(i),getYearlyTotal(properties.at(i)));
-		
-	}
+
     return 0;
 }
-
-Property setYear(Property property) {
-	
-	for(int i = 1; i < 373; i++) {
-		property.year[i] = false;
-	}
-
-
+void setYear(Property &property) {
+	int range;
+	int start;
 	for(int i = 0; i < property.numTenants; i++) {
-
-	
-
-		int startMonth = (property.bookingDays[i][0] * 31) - 31;
-		int startDay = property.bookingDays[i][1];
-		int range = 31 * (property.bookingDays[i][2] - property.bookingDays[i][0]) + (property.bookingDays[i][3] - property.bookingDays[i][1]);
-		if(range == 0) {
-			property.year[startDay+startMonth] = true;
-		} else {
-			for(int j = startMonth+startDay; j < startMonth+range+startDay+1; j++) { // must be +1 becasue day cannot be 0
-				property.year[j] = true;
-				
+		start = ((property.dates[i][0] * 31 - 31) + property.dates[i][1]);
+		range = 31 * (property.dates[i][2] - property.dates[i][0]) + (property.dates[i][3]-property.dates[i][1]);
+		int day = property.dates[i][1];
+		for(int j = start-1; j < start+range; j++) {
+			if(day % 7 == 1 || day % 7 == 0) {
+				property.year[j] = 'D';
+				day++;
+			} else {
+				property.year[j] = 'B';
+				day++;
+			}
+			if (day == 32) {
+				day = 1;
 			}
 		}
 	}
-	return property;
 }
+void addDate(Property &property, string startDate, string endDate) {
+	
+	vector<int> date(4);
+	istringstream ss;
+	ss.str(startDate);
+	ss >> date[0];
+	ss >> date[1];
+	ss.clear();
+	ss.str(endDate);
+	ss >> date[2];
+	ss >> date[3];
 
-void printCalendar(Property property, int month) {
+	if(0 < date[0] && date[0] <= 12 && 0 < date[2] && date[2] <= 12) { // check month
+		if(0 < date[1] && date[1] <= 31 && 0 < date[3] && date[3] <= 31) { // check day
 
-	if(month > 0 && month <= 12){
-		int day = 1;
-		for(int i = month*31-30; i <= month*31; i++) {
-			if(day % 31 == 0) {
-				if(property.year[i]) {
-					cout << "B" << endl;
-					day = 1;
-					cout << endl;
-				} else {
-					cout << "*" << endl;
-					day = 1;
-					cout << endl;
+			int start = date[0] * 31 - 31;
+			int range = 31 * (date[2] - date[0]) + (date[3] - date[1]);
+			int day = date[1];
+			for(int i = start+day; i < start+range; i++) {
+				if(property.year[i] != '*') {
+					cout << "Date range has dates that are already booked!" << endl;
+					return;
 				}
-			} else if(day % 7 == 1) {
-				if(property.year[i]) {
-					cout << "D ";
-				} else {
-					cout << "* ";
-				}
-				day++;
-			} else if(day % 7 == 0) {
-				if(property.year[i]) {
-					cout << "D " << endl;
-				} else {
-					cout << "* " << endl;
-				}
-				day++;
-			} else {
-				if(property.year[i]) {
-					cout << "B ";
-				} else {
-					cout << "* ";
-				}
-				day++;
 			}
+			property.numTenants++;
+			property.dates.push_back(date);
+			setYear(property);
+			cout << "Booked!" << endl;
+		} else {
+			cout << "Invalid day number" << endl;
 		}
 	} else {
 		cout << "Invalid month number" << endl;
 	}
 }
-
-Property addBookings (Property property, string start, string end) {
-
-	istringstream ss;
-	int newDate[4];
-	ss.str(start);
-	ss >> newDate[0] >> newDate[1];
-	ss.clear();
-	ss.str(end);
-	ss >> newDate[2] >> newDate[3];
-
-	if(newDate[0] <= 0 || newDate[0] > 12 || newDate[2] <= 0 || newDate[2] > 12) {
-		cout << "Invalid month number" << endl; 
-		return property;
-	} else if (newDate[1] <= 0 || newDate[1] > 31 || newDate[3] <= 0 || newDate[3] > 31) {
-		cout << "Invalid day number" << endl; 
-		return property;
-	}
-		int startMonth = (newDate[0] * 31) - 31;
-		int startDay = newDate[1];
-		int range = 31 * (newDate[2] - newDate[0]) + (newDate[3] - newDate[1]);
-		
-		if(range == 0) {
-			if(property.year[startMonth+startDay]) {
-				cout << "Date range has dates that are already booked!" << endl;
-				return property;
-			}
+void printMonth(Property property,int month) {
+	int start = month * 31 - 31;
+	int day = 1; 
+	for(int i = start; i <= start+31-1; i++) {
+		if(day % 7 == 0) {
+			cout << property.year[i] << " " << endl;
 		} else {
-			for(int j = startMonth+startDay; j < startMonth+startDay+range; j++) {
-				if(property.year[j]) {
-					cout << "Date range has dates that are already booked!" << endl;
-					return property;
-				}
-			}
-		}
-	property.numTenants++;
-	for(int i = 0; i < 4; i++) {
-		property.bookingDays[property.numTenants-1][i] = newDate[i];
-	}
-	cout << "Booked!" << endl;
-	return setYear(property);
-}
-
-double getYearlyTotal(Property& property) {
-
-	double profit = 0;
-	double totalProfit = 0;
-	
-	int month = 1;
-	int day = 1;
-	for(int i = 1; i < 373; i++) {
-		if(property.year[i]) {
-			if(day % 7 == 1) {
-				profit += property.price * 2;
-				totalProfit += property.price * 2;
-			} else if (day % 7 == 0) {
-				profit += property.price * 2;
-				totalProfit += property.price * 2;
+			if(day != 31) { // stupid formating requirement
+				cout << property.year[i] << " ";
 			} else {
-				profit += property.price;
-				totalProfit += property.price;
+				cout << property.year[i];
 			}
 		}
 		day++;
-		if(day == 32) {
-			property.monthlyTotals[month] = profit;
-			month++;
-			day = 1;
-			profit = 0;
-			
-		}
 	}
-
-	return totalProfit;
+	cout << endl;
+	cout << endl;
 }
+void getTotals(vector<Property> &properties) {
 
-void printCalendarForFile(Property property, double total) {
-
-		ofstream fileOut("yearly.txt", ios::app);
-		string monthNames[] = {"January","February","March","April","May","June","July","August","September","October","November","December"};
-
-		fileOut << "Address: " << property.address << endl;
-		fileOut << fixed << setprecision(2);
-
-		for(int j = 1; j <= 12; j++) {
-
-		if(property.monthlyTotals[j] != 0) {
-
-			
-		fileOut << fixed << setprecision(2);
-		fileOut << monthNames[j-1] << ": " << property.monthlyTotals[j] << endl;
-		int month = j;
+	for(size_t i = 0; i < properties.size(); i++) {
+	
 		int day = 1;
-		for(int i = month*31-30; i <= month*31; i++) {
-			if(day % 31 == 0) {
-				if(property.year[i]) {
-					fileOut << "B" << endl;
-					day = 1;
-					fileOut << endl;
-				} else {
-					fileOut << "*" << endl;
-					day = 1;
-					fileOut << endl;
-				}
-			} else if(day % 7 == 1) {
-				if(property.year[i]) {
-					fileOut << "D ";
-				} else {
-					fileOut << "* ";
-				}
+		int month = 0;
+		double monthTotal = 0;
+		double yearlyTotal = 0;
+
+		for(int j = 0; j < 372; j++) {
+			if(properties[i].year[j] == 'D') {
+				monthTotal += properties[i].price * 2;
 				day++;
-			} else if(day % 7 == 0) {
-				if(property.year[i]) {
-					fileOut << "D " << endl;
-				} else {
-					fileOut << "* " << endl;
-				}
+			} else if(properties[i].year[j] == 'B') {
+				monthTotal += properties[i].price;
 				day++;
 			} else {
-				if(property.year[i]) {
-					fileOut << "B ";
-				} else {
-					fileOut << "* ";
-				}
 				day++;
 			}
+			if(day == 32) {
+				properties[i].monthlyTotals[month] = monthTotal;
+				yearlyTotal += monthTotal;
+				monthTotal = 0;
+				month++;
+				day = 1;
+			}
 		}
-		
-			}		
+		properties[i].total = yearlyTotal;
+	}
+}
+void printToFile(vector<Property> properties) {
+
+	string monthNames[] = {"January","February","March","April","May","June","July","August","September","October","November","December"};
+	ofstream fileOut("yearly.txt");
+	
+	for(size_t i = 0; i < properties.size(); i++) {
+		fileOut << "Address: " << properties[i].address << endl;
+		for(int j = 1; j <= 12; j++) {
+			if(properties[i].monthlyTotals[j-1] != 0) {
+
+
+				int start = j * 31 - 31;
+				int end =  j * 31;
+				int day = 1;
+
+				fileOut << fixed << setprecision(2);
+				fileOut << monthNames[j-1] << ": " << properties[i].monthlyTotals[j-1] << endl;
+
+				for(int k = start; k < end; k++) {
+					
+					if(day % 7 == 0) {
+						fileOut << properties[i].year[k] << " " << endl;
+						day++;
+					}else if (day == 31) {
+						fileOut << properties[i].year[k] << endl;
+						fileOut << endl;
+						day = 1;
+					} else {
+						fileOut << properties[i].year[k] << " ";
+						day++;
+					}
+				}
+			}
 		}
-		
-		fileOut << "Total: $" << total << endl;
+		fileOut << fixed << setprecision(2);
+		fileOut << "Total: $" << properties[i].total << endl;
 		fileOut << endl;
+	}
 }
