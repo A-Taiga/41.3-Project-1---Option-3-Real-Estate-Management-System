@@ -11,8 +11,8 @@ struct Property {
     int numTenants;
     vector<vector<int> > dates;
     char year[372];
-	double monthlyTotals[12];
-	double total;
+    double monthlyTotals[12];
+    double total;
 };
 
 void setYear(Property &property);
